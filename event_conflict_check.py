@@ -22,6 +22,9 @@ def read_event_data() -> tuple[datetime, datetime, dict]:
     # Open the JSON file
     json_file = open(INPUT_JSON_FILENAME)
 
+    print("")
+    print("Reading event data...")
+
     # Return JSON object as a dictionary
     json_data = json.load(json_file)
 
@@ -64,16 +67,20 @@ def event_conflict_check(start_datetime, end_datetime, events_dict) -> list:
     """
         
     conflicts_list = []
+    print(" ")
+    print("Checking events list for conflicts...")
+
+    time.sleep(PRINT_STATEMENT_SLEEP)
 
     # Create list of events that conflict with the new event
     for event in events_dict:
         if event['start_datetime'] <= start_datetime <= event['end_datetime']:
-            print(f"Conflict Detected: This event overlaps with the \033[36m'{event['event_name']}'\033[0m event on your calendar.")
+            print(f"    Conflict Detected: This event overlaps with the \033[36m'{event['event_name']}'\033[0m event on your calendar.")
             conflicts_list.append(event)
             time.sleep(PRINT_STATEMENT_SLEEP)
 
         elif event['start_datetime'] <= end_datetime <= event['end_datetime']:
-            print(f"Conflict Detected: This event overlaps with the \033[36m'{event['event_name']}'\033[0m event on your calendar.")
+            print(f"    Conflict Detected: This event overlaps with the \033[36m'{event['event_name']}'\033[0m event on your calendar.")
             conflicts_list.append(event)
             time.sleep(PRINT_STATEMENT_SLEEP)
     
@@ -96,19 +103,20 @@ def write_conflict_data(conflicts_list) -> None:
 
     # Count number of event conflicts
     if len(conflicts_list) == 0:
-        print(f"\033[33mNo event conflicts were detected.\033[0m")
-        output_json['bool'] = False
+        print(f"No event conflicts were detected.")
+        output_json['conflict_found'] = False
         time.sleep(PRINT_STATEMENT_SLEEP)
     else:
         if len(conflicts_list) == 1:
-            print(f"\033[31mA total of {len(conflicts_list)} Event Conflict was detected.\033[0m")
+            print(f"A total of {len(conflicts_list)} Event Conflict was detected.")
         else:
-            print(f"\033[31mA total of {len(conflicts_list)} Event Conflicts were detected.\033[0m")
-        output_json['bool'] = True
+            print(f"A total of {len(conflicts_list)} Event Conflicts were detected.")
+        output_json['conflict_found'] = True
+        print(" ")
         time.sleep(PRINT_STATEMENT_SLEEP)
     
     # Send event conflict check results to Main Program
-    print(f"Sending Conflict Checker results to the Main Program...")
+    print(f"Sending Event Conflict Checker output to the Main Program...")
     time.sleep(PRINT_STATEMENT_SLEEP)
 
     output_json['conflicts_list'] = conflicts_list
@@ -116,7 +124,7 @@ def write_conflict_data(conflicts_list) -> None:
     output_file.write(json.dumps(output_json, indent=4, default=str))
     output_file.close()
 
-    print(f"Successfully sent Conflict Checker results to the Main Program.")
+    print(f"\033[33mSuccessfully sent Event Conflict Checker output to the Main Program!\033[0m")
     print("")
     time.sleep(PRINT_STATEMENT_SLEEP)
 
@@ -127,10 +135,23 @@ def main():
         input_json_exists = os.path.exists(INPUT_JSON_FILENAME) 
 
         if input_json_exists == True and os.path.getsize(INPUT_JSON_FILENAME) != 0:
-            print(f"The file '{INPUT_JSON_FILENAME}' was found in the directory.")
+            print(f"The file \033[36m'{INPUT_JSON_FILENAME}'\033[0m was found in the directory.")
             time.sleep(PRINT_STATEMENT_SLEEP)
 
-            results = read_event_data()
+            try:
+                results = read_event_data()
+            except:
+                print("\033[31mERROR: JSON file contains one or more errors.\033[0m")
+                print("\033[31mRefer to the README file for more details on the required format.\033[0m")
+                print(" ")
+
+                json_file = open(INPUT_JSON_FILENAME, "w")
+                json_file.truncate(0)
+                json_file.close()
+
+                time.sleep(WHILE_LOOP_SLEEP)
+                continue
+            
             conflicts_list = event_conflict_check(results[0], results[1], results[2])
             write_conflict_data(conflicts_list)
 
